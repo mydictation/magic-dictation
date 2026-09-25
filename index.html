@@ -19,7 +19,6 @@
 
   body {
     min-height: 100vh;
-    /* 🌳 Background image — ඔබේ කැලෑ රූපය */
     background-image: url('background.jpg');
     background-size: cover;
     background-position: center;
@@ -32,7 +31,6 @@
     position: relative;
   }
 
-  /* Soft dark overlay for readability */
   body::before {
     content: '';
     position: fixed;
@@ -42,7 +40,6 @@
     z-index: 0;
   }
 
-  /* ============ 🎈 BALLOON LAYER ============ */
   .balloon-layer {
     position: fixed;
     inset: 0;
@@ -106,10 +103,7 @@
     pointer-events: none;
   }
 
-  .balloon.pop {
-    animation: balloonPop 0.4s ease-out forwards;
-    pointer-events: none;
-  }
+  .balloon.pop { animation: balloonPop 0.4s ease-out forwards; pointer-events: none; }
 
   @keyframes balloonPop {
     0%   { transform: scale(1); opacity: 1; }
@@ -152,7 +146,6 @@
     text-shadow: 0 1px 0 rgba(255,255,255,0.7);
   }
 
-  /* ============ SPLASH SCREEN ============ */
   .splash {
     position: fixed;
     inset: 0;
@@ -313,7 +306,6 @@
     50%      { transform: translateY(-10px); opacity: 1; background: #ffd93d; }
   }
 
-  /* ============ CLOSE BUTTON ============ */
   .close-btn {
     position: absolute;
     top: 10px; right: 12px;
@@ -334,7 +326,6 @@
     box-shadow: 0 0 0 #8b0000, 0 2px 4px rgba(214, 48, 49, 0.4);
   }
 
-  /* ============ MAIN CARD (transparent so background shows through) ============ */
   .app-card {
     position: relative;
     z-index: 10;
@@ -788,16 +779,13 @@
 </head>
 <body>
 
-<!-- 🎈 BALLOON LAYER -->
 <div class="balloon-layer" id="balloonLayer"></div>
 
-<!-- 🎈 Balloon counter -->
 <div class="balloon-counter">
   <span>🎈</span>
   <span id="balloonCount">0</span>
 </div>
 
-<!-- SPLASH SCREEN -->
 <div class="splash" id="splash">
   <div class="splash-content">
     <div class="bees-row">
@@ -828,7 +816,6 @@
   </div>
 </div>
 
-<!-- MAIN APP -->
 <div class="app-card" id="appCard">
   <button class="close-btn" id="closeBtn">✕</button>
 
@@ -863,7 +850,6 @@
   </div>
 </div>
 
-<!-- WIN OVERLAY -->
 <div class="win-overlay" id="winOverlay">
   <div class="win-card">
     <div class="win-emoji">🏆</div>
@@ -874,7 +860,6 @@
   </div>
 </div>
 
-<!-- GOODBYE OVERLAY -->
 <div class="goodbye-overlay" id="goodbyeOverlay">
   <div class="goodbye-sun">☀️</div>
   <div class="goodbye-cloud">☁️</div>
@@ -895,32 +880,26 @@
 </div>
 
 <script>
-/* ============ CONFIG ============ */
-/* ඔබේ රූපය 'background.jpg' කියලා save කරලා HTML එක තියෙන තැනම දාන්න */
-/* රූපය වෙන නමක් නම් මෙතන වෙනස් කරන්න */
 const BACKGROUND_IMAGE = "background.jpg";
 document.body.style.backgroundImage = `url('${BACKGROUND_IMAGE}')`;
 
-/* ============ SPLASH REMOVAL ============ */
 setTimeout(() => {
   const splash = document.getElementById("splash");
   if (splash) splash.remove();
 }, 5500);
 
-/* ============ DATA ============ */
 const DEFAULT_WORDS = [
   "DOG", "CAT", "SUN", "BOOK", "MAGIC",
   "FISH", "TREE", "BIRD", "STAR", "MOON",
   "FROG", "LEAF", "RAIN", "BLUE", "FIRE"
 ];
-const ROUND_LENGTH = 10;
+const ROUND_LENGTH = DEFAULT_WORDS.length;
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const NEON_COLORS = [
   "#ff9500", "#ffea00", "#39ff14", "#00f0ff",
   "#00a8ff", "#b537ff", "#ff2d95", "#ff2d55",
   "#00ff88", "#ff00aa", "#aa00ff", "#00e5ff"
 ];
-
 const BALLOON_COLORS = [
   "#FF4D6D", "#FFBE0B", "#FF9500", "#39FF14",
   "#00D4FF", "#B537FF", "#FF2D95", "#00E676",
@@ -928,7 +907,6 @@ const BALLOON_COLORS = [
   "#FDD835", "#26C6DA", "#EC407A"
 ];
 
-/* ============ STATE ============ */
 let words = [...DEFAULT_WORDS];
 let currentIndex = 0;
 let currentWord = "";
@@ -938,7 +916,6 @@ let locked = false;
 let voice = null;
 let balloonCount = 0;
 
-/* ============ DOM ============ */
 const slotsContainer   = document.getElementById("slotsContainer");
 const keyboard         = document.getElementById("keyboard");
 const progressRow      = document.getElementById("progressRow");
@@ -960,7 +937,6 @@ const goodbyeOverlay   = document.getElementById("goodbyeOverlay");
 const balloonLayer     = document.getElementById("balloonLayer");
 const balloonCountEl   = document.getElementById("balloonCount");
 
-/* ============ LADYBUGS ============ */
 function spawnLadybug() {
   const bug = document.createElement("div");
   bug.className = "ladybug";
@@ -987,7 +963,6 @@ function startLadybugs(count = 5) {
   for (let i = 0; i < count; i++) spawnLadybug();
 }
 
-/* ============ SOUND ============ */
 let audioCtx = null;
 function getCtx() {
   if (!audioCtx) {
@@ -996,133 +971,90 @@ function getCtx() {
   return audioCtx;
 }
 
-function beep(freq, duration, type = "sine", volume = 0.15, delay = 0) {
+function beep(freq, duration = 0.12, type = "sine", volume = 0.12, delay = 0) {
   try {
     const ctx = getCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.value = volume;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(ctx.currentTime + delay);
-    osc.stop(ctx.currentTime + delay + duration);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + duration);
-  } catch (error) {
-    // ignore browser restrictions on autoplay
-  }
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.type = type;
+    oscillator.frequency.value = freq;
+
+    gainNode.gain.setValueAtTime(0.0001, ctx.currentTime + delay);
+    gainNode.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + delay + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + duration);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+
+    oscillator.start(ctx.currentTime + delay);
+    oscillator.stop(ctx.currentTime + delay + duration + 0.03);
+  } catch (e) {}
 }
 
-function soundWin() {
-  beep(523.25, 0.12, "triangle", 0.18);
-  setTimeout(() => beep(659.25, 0.14, "triangle", 0.18), 90);
-  setTimeout(() => beep(783.99, 0.18, "triangle", 0.18), 180);
-}
-
-function soundPop() {
-  beep(220, 0.06, "square", 0.08);
-  setTimeout(() => beep(140, 0.08, "square", 0.06), 40);
-}
-
-function speak(text) {
-  if (!text) return;
-  const synth = window.speechSynthesis;
-  if (!synth) return;
-  synth.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "en-US";
-  utter.rate = 0.9;
+function speakWord(word) {
+  if (!('speechSynthesis' in window)) return;
+  const utter = new SpeechSynthesisUtterance(word);
+  utter.rate = 0.8;
   utter.pitch = 1.2;
-  synth.speak(utter);
+  utter.lang = 'en-US';
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
 }
 
-/* ============ BALLOONS ============ */
-function createBalloon() {
-  const b = document.createElement("div");
-  b.className = "balloon";
-  b.style.left = (Math.random() * 85 + 5) + "vw";
-  b.style.top = (Math.random() * 45 + 15) + "vh";
-  b.style.color = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
-  b.style.background = `radial-gradient(circle at 35% 28%, rgba(255,255,255,0.9), ${b.style.color} 28%, ${b.style.color} 62%, rgba(0,0,0,0.14) 100%)`;
-
-  const shine = document.createElement("span");
-  shine.className = "shine";
-  b.appendChild(shine);
-
-  b.addEventListener("click", () => {
-    if (b.classList.contains("pop")) return;
-    b.classList.add("pop");
-    balloonCount += 1;
-    balloonCountEl.textContent = balloonCount;
-    soundPop();
-    createSparkle(b.offsetLeft + 28, b.offsetTop + 32);
-    setTimeout(() => b.remove(), 430);
-  });
-
-  balloonLayer.appendChild(b);
-}
-
-function createSparkle(x, y) {
-  const spark = document.createElement("div");
-  spark.className = "sparkle-pop";
-  spark.textContent = ["✨", "⭐", "💫", "🎉"][Math.floor(Math.random() * 4)];
-  spark.style.left = x + "px";
-  spark.style.top = y + "px";
-  spark.style.setProperty("--dx", (Math.random() * 60 - 30) + "px");
-  spark.style.setProperty("--dy", (Math.random() * -80 - 20) + "px");
-  document.body.appendChild(spark);
-  setTimeout(() => spark.remove(), 700);
-}
-
-function startBalloons() {
-  balloonLayer.innerHTML = "";
-  balloonCount = 0;
-  balloonCountEl.textContent = "0";
-  for (let i = 0; i < 14; i++) {
-    setTimeout(createBalloon, i * 150);
-  }
-}
-
-/* ============ GAME ============ */
 function renderProgress() {
   progressRow.innerHTML = "";
   for (let i = 0; i < ROUND_LENGTH; i++) {
-    const star = document.createElement("span");
-    star.className = "star" + (i < score ? " filled" : "");
-    star.textContent = "★";
+    const star = document.createElement('span');
+    star.className = 'star' + (i < score ? ' filled' : '');
+    star.textContent = '⭐';
     progressRow.appendChild(star);
   }
   progressText.textContent = `⭐ ${score} / ${ROUND_LENGTH}`;
 }
 
-function shuffleLetters() {
-  const answer = currentWord;
-  const letters = answer.split("");
-  for (let i = letters.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [letters[i], letters[j]] = [letters[j], letters[i]];
-  }
-  return letters;
-}
-
 function renderSlots() {
   slotsContainer.innerHTML = "";
-  for (let i = 0; i < currentWord.length; i++) {
-    const slot = document.createElement("div");
-    slot.className = "slot";
-    const value = userInput[i] || "";
-    slot.textContent = value;
-    if (value && value === currentWord[i]) slot.classList.add("correct");
-    if (value && value !== currentWord[i]) slot.classList.add("wrong");
-    if (!value && currentWord[i] && i === userInput.length && !locked) slot.classList.add("hint");
+  const letters = currentWord.split('');
+  letters.forEach((letter, index) => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    if (userInput[index]) {
+      slot.textContent = userInput[index];
+      slot.classList.add(userInput[index] === letter ? 'correct' : 'wrong');
+    }
+    if (locked && userInput[index] !== letter) slot.classList.add('hint');
     slotsContainer.appendChild(slot);
-  }
+  });
 }
 
-function setWizardFace() {
-  const moods = ["🦋", "🐛", "🐜", "🌼", "🦄", "✨", "🌞", "🌙"];
-  wizardArea.textContent = moods[Math.floor(Math.random() * moods.length)];
+function buildKeyboard() {
+  keyboard.innerHTML = '';
+
+  alphabet.forEach(letter => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'key-btn';
+    btn.textContent = letter;
+    btn.addEventListener('click', () => handleLetter(letter));
+    keyboard.appendChild(btn);
+  });
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.type = 'button';
+  deleteBtn.className = 'key-btn delete-btn';
+  deleteBtn.textContent = 'DEL';
+  deleteBtn.addEventListener('click', handleDelete);
+  keyboard.appendChild(deleteBtn);
+}
+
+function shuffleWords() {
+  for (let i = words.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [words[i], words[j]] = [words[j], words[i]];
+  }
+  currentIndex = 0;
+  score = 0;
+  loadWord();
 }
 
 function loadWord() {
@@ -1132,210 +1064,209 @@ function loadWord() {
   }
 
   currentWord = words[currentIndex];
-  userInput = [];
+  userInput = Array(currentWord.length).fill('');
   locked = false;
-  setWizardFace();
+  wizardArea.textContent = currentWord.length > 5 ? '🦄🌟✨' : '🦋🐛🐜';
   renderSlots();
-  buildKeyboard();
-  startLadybugs(5);
+  progressText.textContent = `⭐ ${score} / ${ROUND_LENGTH}`;
+  renderProgress();
+  speakWord(currentWord);
 }
 
-function buildKeyboard() {
-  keyboard.innerHTML = "";
-  const available = shuffleLetters();
-  available.forEach((letter) => {
-    const btn = document.createElement("button");
-    btn.className = "key-btn";
-    btn.type = "button";
-    btn.textContent = letter;
-    btn.dataset.key = letter;
-    btn.addEventListener("click", () => handleKeyInput(letter));
-    keyboard.appendChild(btn);
-  });
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.className = "key-btn delete-btn";
-  deleteBtn.textContent = "⌫";
-  deleteBtn.addEventListener("click", handleDelete);
-  keyboard.appendChild(deleteBtn);
-}
-
-function handleKeyInput(letter) {
+function handleLetter(letter) {
   if (locked) return;
-  if (!letter) return;
-  if (userInput.length >= currentWord.length) return;
-  userInput.push(letter);
+
+  const nextIndex = userInput.findIndex((cell) => !cell);
+  const position = nextIndex === -1 ? userInput.length - 1 : nextIndex;
+
+  if (position < 0) return;
+
+  userInput[position] = letter;
   renderSlots();
-  if (userInput.join("") === currentWord) {
-    locked = true;
-    score += 1;
-    renderProgress();
-    beep(880, 0.08, "triangle", 0.15);
-    setTimeout(() => {
-      currentIndex += 1;
-      if (currentIndex >= words.length) {
-        showWin();
-      } else {
+  beep(440 + (position * 30), 0.08, 'square', 0.08);
+
+  const isCorrect = currentWord[position] === letter;
+  if (isCorrect) {
+    const allFilled = userInput.every((cell, idx) => cell && cell === currentWord[idx]);
+    if (allFilled) {
+      locked = true;
+      score += 1;
+      renderProgress();
+      setTimeout(() => {
+        currentIndex += 1;
         loadWord();
-      }
-    }, 500);
+      }, 500);
+    }
+  } else {
+    const wrongIndex = userInput.findIndex((cell, idx) => idx === position && cell !== currentWord[idx]);
+    if (wrongIndex !== -1) {
+      userInput[position] = '';
+      renderSlots();
+      beep(180, 0.1, 'sawtooth', 0.09);
+    }
   }
 }
 
 function handleDelete() {
   if (locked) return;
-  if (!userInput.length) return;
-  userInput.pop();
-  renderSlots();
+  for (let i = userInput.length - 1; i >= 0; i--) {
+    if (userInput[i]) {
+      userInput[i] = '';
+      renderSlots();
+      return;
+    }
+  }
 }
 
-function resetGame() {
-  currentIndex = 0;
-  score = 0;
-  renderProgress();
-  loadWord();
-  startBalloons();
+function showWin() {
+  const stars = '⭐'.repeat(5);
+  winStars.textContent = stars;
+  winMsg.textContent = `You finished ${ROUND_LENGTH} words! 🎉`;
+  winOverlay.classList.add('show');
+  triggerConfetti();
+}
+
+function hideWin() {
+  winOverlay.classList.remove('show');
+}
+
+function triggerConfetti() {
+  for (let i = 0; i < 30; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.textContent = ['✨', '🎉', '⭐', '🌟'][Math.floor(Math.random() * 4)];
+    piece.style.left = (Math.random() * 100) + 'vw';
+    piece.style.color = NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)];
+    piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+    piece.style.animationDelay = (Math.random() * 0.5) + 's';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 5000);
+  }
+}
+
+function startBalloons() {
+  balloonLayer.innerHTML = '';
+  for (let i = 0; i < 18; i++) {
+    const balloon = document.createElement('div');
+    balloon.className = 'balloon';
+    balloon.style.left = (Math.random() * 85 + 3) + 'vw';
+    balloon.style.top = (Math.random() * 60 + 12) + 'vh';
+    balloon.style.color = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+    balloon.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.95), ${balloon.style.color} 30%, ${balloon.style.color} 70%, rgba(0,0,0,0.15) 100%)`;
+
+    const shine = document.createElement('span');
+    shine.className = 'shine';
+    balloon.appendChild(shine);
+
+    balloon.addEventListener('click', () => {
+      balloon.classList.add('pop');
+      balloonCount += 1;
+      balloonCountEl.textContent = balloonCount;
+      setTimeout(() => balloon.remove(), 400);
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle-pop';
+      sparkle.textContent = ['✨', '⭐', '🎈'][Math.floor(Math.random() * 3)];
+      sparkle.style.left = balloon.offsetLeft + 'px';
+      sparkle.style.top = balloon.offsetTop + 'px';
+      sparkle.style.setProperty('--dx', (Math.random() * 80 - 40) + 'px');
+      sparkle.style.setProperty('--dy', (-50 - Math.random() * 50) + 'px');
+      document.body.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 700);
+    });
+
+    balloonLayer.appendChild(balloon);
+  }
 }
 
 function showGoodbye() {
-  goodbyeOverlay.classList.add("show");
-  setTimeout(() => goodbyeOverlay.classList.remove("show"), 4000);
-}
-
-/* ============ BUTTONS ============ */
-playBtn.addEventListener("click", () => {
-  playBtn.classList.add("playing");
-  setTimeout(() => playBtn.classList.remove("playing"), 500);
-  speak(currentWord);
-});
-
-hintBtn.addEventListener("click", () => {
-  if (locked) return;
-  const index = userInput.length;
-  if (index >= currentWord.length) return;
-  userInput.push(currentWord[index]);
-  renderSlots();
-  if (userInput.join("") === currentWord) {
-    locked = true;
-    score += 1;
-    renderProgress();
-    setTimeout(() => {
-      currentIndex += 1;
-      loadWord();
-    }, 600);
-  }
-});
-
-skipBtn.addEventListener("click", () => {
-  currentIndex += 1;
-  if (currentIndex >= words.length) showWin();
-  else loadWord();
-});
-
-shuffleBtn.addEventListener("click", () => {
-  if (locked) return;
-  buildKeyboard();
-  beep(520, 0.08, "sawtooth", 0.12);
-});
-
-resetBtn.addEventListener("click", resetGame);
-winAgainBtn.addEventListener("click", () => {
-  winOverlay.classList.remove("show");
-  resetGame();
-});
-
-closeBtn.addEventListener("click", () => {
-  showGoodbye();
+  goodbyeOverlay.classList.add('show');
   setTimeout(() => {
-    const app = document.getElementById("appCard");
-    if (app) app.style.opacity = "0.15";
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-  }, 200);
-});
-
-/* ============ PHYSICAL KEYBOARD ============ */
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Backspace") {
-    e.preventDefault();
-    handleDelete();
-    return;
-  }
-  if (e.key === "Enter" || e.key === " ") {
-    e.preventDefault();
-    speak(currentWord);
-    return;
-  }
-  if (/^[a-zA-Z]$/.test(e.key)) {
-    const L = e.key.toUpperCase();
-    handleKeyInput(L);
-  }
-});
-
-/* ============ WIN ============ */
-function showWin() {
-  soundWin();
-  winStars.textContent = "⭐⭐⭐⭐⭐";
-  winMsg.textContent = `You learned ${ROUND_LENGTH} words! 🌟`;
-
-  const emojis = ["🎉", "🎊", "⭐", "🌟", "🦋", "🌸", "💚", "🧡", "🐞", "✨", "🐝", "🎈"];
-  for (let i = 0; i < 40; i++) {
-    const c = document.createElement("div");
-    c.className = "confetti";
-    c.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-    c.style.left = Math.random() * 100 + "vw";
-    c.style.fontSize = (18 + Math.random() * 22) + "px";
-    c.style.animationDuration = (2 + Math.random() * 2.5) + "s";
-    c.style.animationDelay = (Math.random() * 0.8) + "s";
-    document.body.appendChild(c);
-    setTimeout(() => c.remove(), 5000);
-  }
-  setTimeout(() => winOverlay.classList.add("show"), 300);
+    goodbyeOverlay.classList.remove('show');
+  }, 4000);
 }
 
-/* ============ FILE UPLOAD ============ */
-fileInput.addEventListener("change", (e) => {
-  const file = e.target.files && e.target.files[0];
+playBtn.addEventListener('click', () => speakWord(currentWord || DEFAULT_WORDS[0]));
+
+hintBtn.addEventListener('click', () => {
+  if (!currentWord || locked) return;
+  const index = currentWord.split('').findIndex((letter, idx) => !userInput[idx]);
+  if (index !== -1) {
+    userInput[index] = currentWord[index];
+    renderSlots();
+    if (userInput.every((cell, idx) => cell === currentWord[idx])) {
+      score += 1;
+      renderProgress();
+      locked = true;
+      setTimeout(() => {
+        currentIndex += 1;
+        loadWord();
+      }, 600);
+    }
+  }
+});
+
+skipBtn.addEventListener('click', () => {
+  currentIndex += 1;
+  loadWord();
+});
+
+shuffleBtn.addEventListener('click', () => {
+  shuffleWords();
+});
+
+resetBtn.addEventListener('click', () => {
+  words = [...DEFAULT_WORDS];
+  currentIndex = 0;
+  score = 0;
+  loadWord();
+  hideWin();
+});
+
+winAgainBtn.addEventListener('click', () => {
+  hideWin();
+  words = [...DEFAULT_WORDS];
+  currentIndex = 0;
+  score = 0;
+  loadWord();
+});
+
+closeBtn.addEventListener('click', () => {
+  showGoodbye();
+});
+
+fileInput.addEventListener('change', (event) => {
+  const file = event.target.files && event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = () => {
-    const text = String(reader.result || "");
-    let list = [];
-
-    if (/\.json$/i.test(file.name)) {
-      try {
-        const parsed = JSON.parse(text);
-        if (Array.isArray(parsed)) list = parsed;
-      } catch (err) { list = []; }
-    } else {
-      list = text.split(/\r?\n/);
-    }
-
-    list = list
-      .map(w => String(w).trim().toUpperCase().replace(/[^A-Z]/g, ""))
-      .filter(w => w.length > 0 && w.length <= 12);
-
-    if (list.length) {
-      words = list;
+  reader.onload = function () {
+    try {
+      const text = reader.result;
+      const rows = text.split(/\s+/).map(s => s.trim()).filter(Boolean); 
+      const parsed = rows.length ? rows : DEFAULT_WORDS;
+      words = parsed.map(w => String(w).toUpperCase());
       currentIndex = 0;
       score = 0;
-      renderProgress();
       loadWord();
-      beep(700, 0.1, "sine", 0.15);
-      beep(1000, 0.15, "sine", 0.15, 0.1);
-    } else {
-      alert("❌ No valid words found!");
+    } catch (err) {
+      console.error(err);
     }
   };
   reader.readAsText(file);
-  e.target.value = "";
 });
 
-/* ============ START ============ */
+function initGame() {
+  currentIndex = 0;
+  score = 0;
+  words = [...DEFAULT_WORDS];
+  loadWord();
+  renderProgress();
+  startLadybugs();
+  startBalloons();
+}
+
+buildKeyboard();
 initGame();
-startBalloons();
 </script>
-<script src="forest-animations.js"></script>
 </body>
 </html>
