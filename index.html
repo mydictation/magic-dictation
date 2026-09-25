@@ -338,8 +338,9 @@
   .app-card {
     position: relative;
     z-index: 10;
-    background:%20rgba(255,%20248,%20231,%200.28);
-    backdrop-filter:%20blur(2px);%0A-webkit-backdrop-filter%3A%20blur(2px);
+    background: rgba(255, 248, 231, 0.28);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
     border-radius: 26px;
     padding: 14px 14px 16px;
     width: 100%;
@@ -1002,225 +1003,107 @@ function beep(freq, duration, type = "sine", volume = 0.15, delay = 0) {
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
+    gain.gain.value = volume;
     osc.connect(gain);
     gain.connect(ctx.destination);
-    const t = ctx.currentTime + delay;
-    gain.gain.setValueAtTime(volume, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    osc.start(t);
-    osc.stop(t + duration);
-  } catch (e) {}
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + duration);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + duration);
+  } catch (error) {
+    // ignore browser restrictions on autoplay
+  }
 }
 
-function soundCorrect() { beep(659, 0.12, "sine", 0.15, 0); beep(880, 0.18, "sine", 0.15, 0.10); }
-function soundWrong()   { beep(220, 0.15, "sawtooth", 0.12, 0); beep(160, 0.20, "sawtooth", 0.12, 0.10); }
-function soundKey()     { beep(900, 0.05, "sine", 0.05, 0); }
 function soundWin() {
-  [523, 659, 784, 1046].forEach((f, i) => beep(f, 0.25, "sine", 0.2, i * 0.12));
-  beep(1318, 0.6, "sine", 0.2, 0.55);
-}
-function soundGoodbye() {
-  [784, 659, 523, 392].forEach((f, i) => beep(f, 0.35, "sine", 0.18, i * 0.22));
-  beep(262, 0.8, "sine", 0.2, 1.1);
-}
-function soundBalloonPop() {
-  beep(880, 0.08, "sine", 0.12, 0);
-  beep(1320, 0.10, "sine", 0.10, 0.04);
+  beep(523.25, 0.12, "triangle", 0.18);
+  setTimeout(() => beep(659.25, 0.14, "triangle", 0.18), 90);
+  setTimeout(() => beep(783.99, 0.18, "triangle", 0.18), 180);
 }
 
-/* ============ SPEECH ============ */
-function loadVoices() {
-  if (!("speechSynthesis" in window)) return;
-  const list = speechSynthesis.getVoices();
-  voice = list.find(v => /^en[-_]US/i.test(v.lang))
-       || list.find(v => /^en/i.test(v.lang))
-       || null;
+function soundPop() {
+  beep(220, 0.06, "square", 0.08);
+  setTimeout(() => beep(140, 0.08, "square", 0.06), 40);
 }
 
 function speak(text) {
-  if (!("speechSynthesis" in window)) return;
-  speechSynthesis.cancel();
+  if (!text) return;
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+  synth.cancel();
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = "en-US";
-  utter.rate = 0.8;
-  utter.pitch = 1.1;
-  if (voice) utter.voice = voice;
-  utter.onstart = () => playBtn.classList.add("playing");
-  utter.onend   = () => playBtn.classList.remove("playing");
-  speechSynthesis.speak(utter);
+  utter.rate = 0.9;
+  utter.pitch = 1.2;
+  synth.speak(utter);
 }
 
-if ("speechSynthesis" in window) {
-  loadVoices();
-  speechSynthesis.onvoiceschanged = loadVoices;
-}
-
-/* ============ BALLOON SPAWNER ============ */
-function getKeyboardTop() {
-  const kb = document.getElementById("keyboard");
-  if (!kb) return window.innerHeight * 0.7;
-  return kb.getBoundingClientRect().top;
-}
-
+/* ============ BALLOONS ============ */
 function createBalloon() {
-  const balloon = document.createElement("div");
-  balloon.className = "balloon";
+  const b = document.createElement("div");
+  b.className = "balloon";
+  b.style.left = (Math.random() * 85 + 5) + "vw";
+  b.style.top = (Math.random() * 45 + 15) + "vh";
+  b.style.color = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
+  b.style.background = `radial-gradient(circle at 35% 28%, rgba(255,255,255,0.9), ${b.style.color} 28%, ${b.style.color} 62%, rgba(0,0,0,0.14) 100%)`;
 
-  const color = BALLOON_COLORS[Math.floor(Math.random() * BALLOON_COLORS.length)];
-  balloon.style.color = color;
-  balloon.style.background = `radial-gradient(circle at 35% 30%, ${lighten(color, 35)}, ${color} 55%, ${darken(color, 30)})`;
-
-  const shine = document.createElement("div");
+  const shine = document.createElement("span");
   shine.className = "shine";
-  balloon.appendChild(shine);
+  b.appendChild(shine);
 
-  const sizeMultiplier = 0.85 + Math.random() * 0.35;
-  const baseW = window.innerWidth < 400 ? 44 : 56;
-  const baseH = window.innerWidth < 400 ? 56 : 70;
-  balloon.style.width = (baseW * sizeMultiplier) + "px";
-  balloon.style.height = (baseH * sizeMultiplier) + "px";
-
-  const W = window.innerWidth;
-  const kbTop = getKeyboardTop();
-  const balloonH = parseInt(balloon.style.height, 10) || 70;
-
-  const topBound = 70;
-  const bottomBound = kbTop - balloonH - 20;
-
-  const spawnFromLeft = Math.random() > 0.5;
-  let startX, startY, endX, endY;
-
-  if (spawnFromLeft) {
-    startX = -100;
-    startY = topBound + Math.random() * Math.max(40, bottomBound - topBound);
-    endX = W + 100;
-    const drift = (Math.random() - 0.5) * 60;
-    endY = Math.max(topBound, Math.min(bottomBound, startY + drift));
-  } else {
-    startX = W + 100;
-    startY = topBound + Math.random() * Math.max(40, bottomBound - topBound);
-    endX = -100;
-    const drift = (Math.random() - 0.5) * 60;
-    endY = Math.max(topBound, Math.min(bottomBound, startY + drift));
-  }
-
-  balloon.style.left = startX + "px";
-  balloon.style.top = startY + "px";
-
-  const duration = 8 + Math.random() * 4;
-  const startTime = performance.now();
-  let popped = false;
-  let animId;
-
-  balloon.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (popped) return;
-    popped = true;
-    popBalloon(balloon, e.clientX, e.clientY);
-    cancelAnimationFrame(animId);
+  b.addEventListener("click", () => {
+    if (b.classList.contains("pop")) return;
+    b.classList.add("pop");
+    balloonCount += 1;
+    balloonCountEl.textContent = balloonCount;
+    soundPop();
+    createSparkle(b.offsetLeft + 28, b.offsetTop + 32);
+    setTimeout(() => b.remove(), 430);
   });
 
-  balloon.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
-
-  function animate(now) {
-    if (popped) return;
-    const elapsed = (now - startTime) / 1000;
-    const t = Math.min(elapsed / duration, 1);
-
-    const bobX = Math.sin(t * Math.PI * 4) * 15;
-    const bobY = Math.cos(t * Math.PI * 4) * 12;
-
-    const x = startX + (endX - startX) * t + bobX;
-    const y = startY + (endY - startY) * t + bobY;
-    const rotation = Math.sin(t * Math.PI * 5) * 6;
-
-    balloon.style.left = x + "px";
-    balloon.style.top = y + "px";
-    balloon.style.transform = `rotate(${rotation}deg)`;
-
-    if (t < 1) {
-      animId = requestAnimationFrame(animate);
-    } else {
-      balloon.remove();
-    }
-  }
-  animId = requestAnimationFrame(animate);
-
-  balloonLayer.appendChild(balloon);
+  balloonLayer.appendChild(b);
 }
 
-function popBalloon(balloon, clickX, clickY) {
-  const rect = balloon.getBoundingClientRect();
-  const cx = clickX || (rect.left + rect.width / 2);
-  const cy = clickY || (rect.top + rect.height / 2);
-
-  balloon.classList.add("pop");
-  setTimeout(() => balloon.remove(), 400);
-
-  soundBalloonPop();
-
-  balloonCount++;
-  balloonCountEl.textContent = balloonCount;
-
-  const emojis = ["✨", "⭐", "💫", "🌟", "💥"];
-  for (let i = 0; i < 5; i++) {
-    const sparkle = document.createElement("div");
-    sparkle.className = "sparkle-pop";
-    sparkle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-
-    const angle = (i / 5) * Math.PI * 2;
-    const distance = 45 + Math.random() * 30;
-    sparkle.style.setProperty("--dx", (Math.cos(angle) * distance) + "px");
-    sparkle.style.setProperty("--dy", (Math.sin(angle) * distance) + "px");
-    sparkle.style.left = (cx - 12) + "px";
-    sparkle.style.top = (cy - 12) + "px";
-    sparkle.style.animationDelay = (i * 0.03) + "s";
-
-    document.body.appendChild(sparkle);
-    setTimeout(() => sparkle.remove(), 700);
-  }
-}
-
-function lighten(hex, percent) {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.min(255, (num >> 16) + amt);
-  const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-  const B = Math.min(255, (num & 0x0000FF) + amt);
-  return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-}
-
-function darken(hex, percent) {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.max(0, (num >> 16) - amt);
-  const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
-  const B = Math.max(0, (num & 0x0000FF) - amt);
-  return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+function createSparkle(x, y) {
+  const spark = document.createElement("div");
+  spark.className = "sparkle-pop";
+  spark.textContent = ["✨", "⭐", "💫", "🎉"][Math.floor(Math.random() * 4)];
+  spark.style.left = x + "px";
+  spark.style.top = y + "px";
+  spark.style.setProperty("--dx", (Math.random() * 60 - 30) + "px");
+  spark.style.setProperty("--dy", (Math.random() * -80 - 20) + "px");
+  document.body.appendChild(spark);
+  setTimeout(() => spark.remove(), 700);
 }
 
 function startBalloons() {
-  setTimeout(() => createBalloon(), 2000);
-
-  function loop() {
-    createBalloon();
-    const delay = 5500 + Math.random() * 1000;
-    setTimeout(loop, delay);
+  balloonLayer.innerHTML = "";
+  balloonCount = 0;
+  balloonCountEl.textContent = "0";
+  for (let i = 0; i < 14; i++) {
+    setTimeout(createBalloon, i * 150);
   }
-  setTimeout(loop, 7000);
 }
 
-/* ============ RENDER ============ */
+/* ============ GAME ============ */
 function renderProgress() {
   progressRow.innerHTML = "";
   for (let i = 0; i < ROUND_LENGTH; i++) {
-    const s = document.createElement("div");
-    s.className = "star" + (i < score ? " filled" : "");
-    s.textContent = i < score ? "⭐" : "☆";
-    progressRow.appendChild(s);
+    const star = document.createElement("span");
+    star.className = "star" + (i < score ? " filled" : "");
+    star.textContent = "★";
+    progressRow.appendChild(star);
   }
   progressText.textContent = `⭐ ${score} / ${ROUND_LENGTH}`;
+}
+
+function shuffleLetters() {
+  const answer = currentWord;
+  const letters = answer.split("");
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters[j], letters[i]];
+  }
+  return letters;
 }
 
 function renderSlots() {
@@ -1228,191 +1111,147 @@ function renderSlots() {
   for (let i = 0; i < currentWord.length; i++) {
     const slot = document.createElement("div");
     slot.className = "slot";
-    slot.textContent = userInput[i] || "";
+    const value = userInput[i] || "";
+    slot.textContent = value;
+    if (value && value === currentWord[i]) slot.classList.add("correct");
+    if (value && value !== currentWord[i]) slot.classList.add("wrong");
+    if (!value && currentWord[i] && i === userInput.length && !locked) slot.classList.add("hint");
     slotsContainer.appendChild(slot);
   }
 }
 
-function renderKeyboard() {
+function setWizardFace() {
+  const moods = ["🦋", "🐛", "🐜", "🌼", "🦄", "✨", "🌞", "🌙"];
+  wizardArea.textContent = moods[Math.floor(Math.random() * moods.length)];
+}
+
+function loadWord() {
+  if (currentIndex >= words.length) {
+    showWin();
+    return;
+  }
+
+  currentWord = words[currentIndex];
+  userInput = [];
+  locked = false;
+  setWizardFace();
+  renderSlots();
+  buildKeyboard();
+  startLadybugs(5);
+}
+
+function buildKeyboard() {
   keyboard.innerHTML = "";
-  alphabet.forEach((letter, index) => {
+  const available = shuffleLetters();
+  available.forEach((letter) => {
     const btn = document.createElement("button");
     btn.className = "key-btn";
+    btn.type = "button";
     btn.textContent = letter;
     btn.dataset.key = letter;
-    btn.style.color = NEON_COLORS[index % NEON_COLORS.length];
     btn.addEventListener("click", () => handleKeyInput(letter));
     keyboard.appendChild(btn);
   });
 
-  const delBtn = document.createElement("button");
-  delBtn.className = "key-btn delete-btn";
-  delBtn.textContent = "⌫";
-  delBtn.dataset.key = "BACKSPACE";
-  delBtn.addEventListener("click", handleDelete);
-  keyboard.appendChild(delBtn);
-}
-
-/* ============ GAME LOGIC ============ */
-function initGame() {
-  renderProgress();
-  renderKeyboard();
-  startLadybugs(5);
-  loadWord();
-}
-
-function loadWord() {
-  if (!words.length) words = [...DEFAULT_WORDS];
-  if (currentIndex >= words.length) currentIndex = 0;
-  currentWord = words[currentIndex].toUpperCase();
-  userInput = [];
-  locked = false;
-  renderSlots();
-  setTimeout(() => speak(currentWord), 3000);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "key-btn delete-btn";
+  deleteBtn.textContent = "⌫";
+  deleteBtn.addEventListener("click", handleDelete);
+  keyboard.appendChild(deleteBtn);
 }
 
 function handleKeyInput(letter) {
   if (locked) return;
+  if (!letter) return;
   if (userInput.length >= currentWord.length) return;
-  if (score >= ROUND_LENGTH) return;
-
-  soundKey();
   userInput.push(letter);
   renderSlots();
-
-  const idx = userInput.length - 1;
-  const slots = slotsContainer.children;
-  if (slots[idx]) {
-    if (letter === currentWord[idx]) slots[idx].classList.add("correct");
-    else slots[idx].classList.add("wrong");
-  }
-
-  if (userInput.length === currentWord.length) {
-    setTimeout(checkAnswer, 350);
+  if (userInput.join("") === currentWord) {
+    locked = true;
+    score += 1;
+    renderProgress();
+    beep(880, 0.08, "triangle", 0.15);
+    setTimeout(() => {
+      currentIndex += 1;
+      if (currentIndex >= words.length) {
+        showWin();
+      } else {
+        loadWord();
+      }
+    }, 500);
   }
 }
 
 function handleDelete() {
   if (locked) return;
-  if (userInput.length > 0) {
-    soundKey();
-    userInput.pop();
-    renderSlots();
-    const slots = slotsContainer.children;
-    for (let i = 0; i < userInput.length; i++) {
-      if (slots[i]) {
-        slots[i].classList.add(userInput[i] === currentWord[i] ? "correct" : "wrong");
-      }
-    }
-  }
+  if (!userInput.length) return;
+  userInput.pop();
+  renderSlots();
 }
 
-function checkAnswer() {
-  locked = true;
-  const typed = userInput.join("");
-  const slots = slotsContainer.children;
+function resetGame() {
+  currentIndex = 0;
+  score = 0;
+  renderProgress();
+  loadWord();
+  startBalloons();
+}
 
-  for (let i = 0; i < slots.length; i++) {
-    slots[i].classList.remove("correct", "wrong", "hint");
-    slots[i].classList.add(typed[i] === currentWord[i] ? "correct" : "wrong");
-  }
-
-  if (typed === currentWord) {
-    soundCorrect();
-    wizardArea.textContent = "🎉✨🎉";
-    score++;
-    renderProgress();
-
-    setTimeout(() => {
-      wizardArea.textContent = "🦋🐛🐜";
-      if (score >= ROUND_LENGTH) showWin();
-      else { currentIndex++; loadWord(); }
-    }, 900);
-  } else {
-    soundWrong();
-    wizardArea.textContent = "😅";
-    setTimeout(() => {
-      wizardArea.textContent = "🦋🐛🐜";
-      userInput = [];
-      renderSlots();
-      locked = false;
-    }, 900);
-  }
+function showGoodbye() {
+  goodbyeOverlay.classList.add("show");
+  setTimeout(() => goodbyeOverlay.classList.remove("show"), 4000);
 }
 
 /* ============ BUTTONS ============ */
-playBtn.addEventListener("click", () => speak(currentWord));
+playBtn.addEventListener("click", () => {
+  playBtn.classList.add("playing");
+  setTimeout(() => playBtn.classList.remove("playing"), 500);
+  speak(currentWord);
+});
 
 hintBtn.addEventListener("click", () => {
   if (locked) return;
-  if (userInput.length >= currentWord.length) return;
-  const idx = userInput.length;
-  const letter = currentWord[idx];
-  userInput.push(letter);
+  const index = userInput.length;
+  if (index >= currentWord.length) return;
+  userInput.push(currentWord[index]);
   renderSlots();
-  const slot = slotsContainer.children[idx];
-  if (slot) {
-    slot.classList.add("correct", "hint");
-    setTimeout(() => slot.classList.remove("hint"), 2500);
+  if (userInput.join("") === currentWord) {
+    locked = true;
+    score += 1;
+    renderProgress();
+    setTimeout(() => {
+      currentIndex += 1;
+      loadWord();
+    }, 600);
   }
-  beep(880, 0.15, "sine", 0.12);
-  if (userInput.length === currentWord.length) setTimeout(checkAnswer, 350);
 });
 
 skipBtn.addEventListener("click", () => {
-  if (locked) return;
-  beep(400, 0.15, "triangle", 0.1);
-  currentIndex++;
-  loadWord();
+  currentIndex += 1;
+  if (currentIndex >= words.length) showWin();
+  else loadWord();
 });
 
 shuffleBtn.addEventListener("click", () => {
-  for (let i = words.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [words[i], words[j]] = [words[j], words[i]];
-  }
-  currentIndex = 0;
-  score = 0;
-  renderProgress();
-  loadWord();
-  beep(600, 0.1, "sine", 0.12);
-  beep(900, 0.15, "sine", 0.12, 0.08);
+  if (locked) return;
+  buildKeyboard();
+  beep(520, 0.08, "sawtooth", 0.12);
 });
 
-resetBtn.addEventListener("click", () => {
-  currentIndex = 0;
-  score = 0;
-  renderProgress();
-  loadWord();
-  beep(500, 0.1, "sine", 0.12);
-});
-
+resetBtn.addEventListener("click", resetGame);
 winAgainBtn.addEventListener("click", () => {
   winOverlay.classList.remove("show");
-  score = 0;
-  currentIndex = 0;
-  renderProgress();
-  loadWord();
+  resetGame();
 });
 
-/* ============ CLOSE BUTTON ============ */
 closeBtn.addEventListener("click", () => {
-  soundGoodbye();
-  goodbyeOverlay.classList.add("show");
+  showGoodbye();
   setTimeout(() => {
-    window.close();
-    setTimeout(() => {
-      document.body.innerHTML = `
-        <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:'Comic Sans MS',sans-serif;background:linear-gradient(180deg,#b8e0ff,#ffe9b3);text-align:center;padding:20px;">
-          <div>
-            <div style="font-size:80px;margin-bottom:20px;">👋</div>
-            <div style="font-size:32px;font-weight:900;color:#d2691e;text-shadow:0 2px 0 #fff;">Bye Bye!</div>
-            <div style="font-size:18px;color:#6b4423;margin-top:20px;font-weight:bold;">Come back soon! 🐝</div>
-          </div>
-        </div>
-      `;
-    }, 500);
-  }, 5200);
+    const app = document.getElementById("appCard");
+    if (app) app.style.opacity = "0.15";
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }, 200);
 });
 
 /* ============ PHYSICAL KEYBOARD ============ */
@@ -1420,7 +1259,6 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Backspace") {
     e.preventDefault();
     handleDelete();
-    flashKey("BACKSPACE");
     return;
   }
   if (e.key === "Enter" || e.key === " ") {
@@ -1431,17 +1269,8 @@ document.addEventListener("keydown", (e) => {
   if (/^[a-zA-Z]$/.test(e.key)) {
     const L = e.key.toUpperCase();
     handleKeyInput(L);
-    flashKey(L);
   }
 });
-
-function flashKey(letter) {
-  const btn = keyboard.querySelector(`[data-key="${letter}"]`);
-  if (btn) {
-    btn.classList.add("pressed");
-    setTimeout(() => btn.classList.remove("pressed"), 130);
-  }
-}
 
 /* ============ WIN ============ */
 function showWin() {
@@ -1507,6 +1336,6 @@ fileInput.addEventListener("change", (e) => {
 initGame();
 startBalloons();
 </script>
-
+<script src="forest-animations.js"></script>
 </body>
 </html>
